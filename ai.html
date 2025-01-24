@@ -346,7 +346,7 @@
       players.A.placedCount = 9;
       players.A.mustPlace9 = false;
       switchTurn();
-    } else if (players.A.placedCount < players.A.maxPieces) {
+    } else if (!players.A.mustPlace9 && players.A.placedCount < players.A.maxPieces) {
       // Place a piece in an empty spot
       const emptySpot = dots.findIndex(
         (_, i) =>
@@ -712,7 +712,7 @@
               !player.mustPlace1 &&
               selectedPiece === null)
           ) {
-            switchTurn();
+            
           }
         } else {
           isGameActive = false;
@@ -722,5 +722,5 @@
       canvas.addEventListener("click", handleCanvasClick);
       initGame();
     </script>
-  </body>
+  </body>
 </html>
