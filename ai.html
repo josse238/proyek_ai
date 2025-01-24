@@ -328,159 +328,161 @@
       }
 
       function performAIMove() {
-        if (!isGameActive) return;
+  if (!isGameActive) return;
 
-        // Determine which side the AI should play based on isHumanUwong
-        if (
-          (currentPlayer === "A" && !isHumanUwong) || // AI plays Uwong when human is not Uwong
-          (currentPlayer === "B" && isHumanUwong) // AI plays Tiger when human is Uwong
-        ) {
-          if (currentPlayer === "A") {
-            // AI Uwong logic
-            if (players.A.mustPlace9) {
-              // Place initial 9 pieces
-              const validCenters = [6, 7, 8, 11, 12, 13, 16, 17, 18];
-              const center =
-                validCenters[Math.floor(Math.random() * validCenters.length)];
-              const offsets = [-6, -5, -4, -1, 0, 1, 4, 5, 6];
-              offsets.forEach((offset) => {
-                const target = center + offset;
-                if (!players.A.pieces.includes(target))
-                  players.A.pieces.push(target);
-              });
-              players.A.placedCount = 9;
-              players.A.mustPlace9 = false;
-              switchTurn();
-            } else if (players.A.placedCount < players.A.maxPieces) {
-              // Place remaining pieces
-              const empty = dots
-                .map((_, i) => i)
-                .find(
-                  (i) =>
-                    !players.A.pieces.includes(i) &&
-                    !players.B.pieces.includes(i)
-                );
-              if (empty !== undefined) {
-                players.A.pieces.push(empty);
-                players.A.placedCount++;
-              }
-              switchTurn();
-            } else {
-              // Move existing pieces
-              const moves = [];
-              players.A.pieces.forEach((p) => {
-                lines.forEach(([s, e]) => {
-                  if (
-                    s === p &&
-                    !players.A.pieces.includes(e) &&
-                    !players.B.pieces.includes(e)
-                  )
-                    moves.push({ from: p, to: e });
-                  if (
-                    e === p &&
-                    !players.A.pieces.includes(s) &&
-                    !players.B.pieces.includes(s)
-                  )
-                    moves.push({ from: p, to: s });
-                });
-              });
-              if (moves.length > 0) {
-                const move = moves[Math.floor(Math.random() * moves.length)];
-                players.A.pieces[players.A.pieces.indexOf(move.from)] = move.to;
-              }
-              switchTurn();
-            }
-          } else {
-            // AI Tiger logic (same as before)
-            const tigerPos = players.B.pieces[0];
-            // Try to find kill moves
-            let bestKill;
-            lines.forEach(([s, e]) => {
-              if (s === tigerPos || e === tigerPos) {
-                const dir =
-                  s === tigerPos
-                    ? { dx: dots[e].x - dots[s].x, dy: dots[e].y - dots[s].y }
-                    : { dx: dots[s].x - dots[e].x, dy: dots[s].y - dots[e].y };
-                let current = tigerPos;
-                let count = 0;
-                let empty;
-                while (true) {
-                  const next = lines.find(([s1, e1]) => {
-                    if (
-                      s1 === current &&
-                      dots[e1].x - dots[s1].x === dir.dx &&
-                      dots[e1].y - dots[s1].y === dir.dy
-                    )
-                      return true;
-                    if (
-                      e1 === current &&
-                      dots[s1].x - dots[e1].x === dir.dx &&
-                      dots[s1].y - dots[e1].y === dir.dy
-                    )
-                      return true;
-                    return false;
-                  });
-                  if (!next) break;
-                  current = next[0] === current ? next[1] : next[0];
-                  if (players.A.pieces.includes(current)) count++;
-                  else if (!players.B.pieces.includes(current)) {
-                    empty = current;
-                    break;
-                  } else break;
-                }
-                if (empty !== undefined && count % 2 === 1) {
-                  if (!bestKill || count > bestKill.count) {
-                    bestKill = { target: empty, count, dir };
-                  }
-                }
-              }
+  if (currentPlayer === "A") {
+    if (players.A.mustPlace9) {
+      // Place initial 9 pieces in 3x3 formation
+      const validCenters = [6, 7, 8, 11, 12, 13, 16, 17, 18];
+      const center =
+        validCenters[Math.floor(Math.random() * validCenters.length)];
+      const offsets = [-6, -5, -4, -1, 0, 1, 4, 5, 6];
+      offsets.forEach((offset) => {
+        const target = center + offset;
+        if (!players.A.pieces.includes(target)) {
+          players.A.pieces.push(target);
+        }
+      });
+      players.A.placedCount = 9;
+      players.A.mustPlace9 = false;
+      switchTurn();
+    } else if (players.A.placedCount < players.A.maxPieces) {
+      // Place a piece in an empty spot
+      const emptySpot = dots.findIndex(
+        (_, i) =>
+          !players.A.pieces.includes(i) && !players.B.pieces.includes(i)
+      );
+      
+      if (emptySpot !== -1) {
+        players.A.pieces.push(emptySpot);
+        players.A.placedCount++;
+      }
+      switchTurn();
+    } else {
+      const moves = [];
+      players.A.pieces.forEach((p) => {
+        lines.forEach(([s, e]) => {
+          if (
+            s === p &&
+            !players.A.pieces.includes(e) &&
+            !players.B.pieces.includes(e)
+          )
+            moves.push({ from: p, to: e });
+          if (
+            e === p &&
+            !players.A.pieces.includes(s) &&
+            !players.B.pieces.includes(s)
+          )
+            moves.push({ from: p, to: s });
+        });
+      });
+      if (moves.length > 0) {
+        const move = moves[Math.floor(Math.random() * moves.length)];
+        players.A.pieces[players.A.pieces.indexOf(move.from)] = move.to;
+      }
+      switchTurn();
+    }
+  } else if (currentPlayer === "B") {
+    // AI Tiger logic
+    if (players.B.mustPlace1) {
+      // Tiger placement phase
+      const empty = dots
+        .map((_, i) => i)
+        .find(
+          (i) =>
+            !players.A.pieces.includes(i) && !players.B.pieces.includes(i)
+        );
+      if (empty !== undefined) {
+        players.B.pieces[0] = empty;
+        players.B.mustPlace1 = false;
+        players.B.placedCount = 1;
+      }
+      switchTurn();
+    } else {
+      const tigerPos = players.B.pieces[0];
+      let bestKill;
+      lines.forEach(([s, e]) => {
+        if (s === tigerPos || e === tigerPos) {
+          const dir =
+            s === tigerPos
+              ? { dx: dots[e].x - dots[s].x, dy: dots[e].y - dots[s].y }
+              : { dx: dots[s].x - dots[e].x, dy: dots[s].y - dots[e].y };
+          let current = tigerPos;
+          let count = 0;
+          let empty;
+          while (true) {
+            const next = lines.find(([s1, e1]) => {
+              if (
+                s1 === current &&
+                dots[e1].x - dots[s1].x === dir.dx &&
+                dots[e1].y - dots[s1].y === dir.dy
+              )
+                return true;
+              if (
+                e1 === current &&
+                dots[s1].x - dots[e1].x === dir.dx &&
+                dots[s1].y - dots[e1].y === dir.dy
+              )
+                return true;
+              return false;
             });
-
-            if (bestKill) {
-              // Perform kill
-              let current = tigerPos;
-              while (true) {
-                const next = lines.find(
-                  ([s, e]) =>
-                    (s === current &&
-                      dots[e].x - dots[s].x === bestKill.dir.dx &&
-                      dots[e].y - dots[s].y === bestKill.dir.dy) ||
-                    (e === current &&
-                      dots[s].x - dots[e].x === bestKill.dir.dx &&
-                      dots[s].y - dots[e].y === bestKill.dir.dy)
-                );
-                if (!next) break;
-                current = next[0] === current ? next[1] : next[0];
-                if (players.A.pieces.includes(current)) {
-                  players.A.pieces = players.A.pieces.filter(
-                    (p) => p !== current
-                  );
-                } else break;
-              }
-              players.B.pieces[0] = bestKill.target;
-            } else {
-              // Regular move
-              const moves = lines
-                .flatMap(([s, e]) =>
-                  s === tigerPos ? e : e === tigerPos ? s : -1
-                )
-                .filter(
-                  (p) =>
-                    p !== -1 &&
-                    !players.A.pieces.includes(p) &&
-                    !players.B.pieces.includes(p)
-                );
-              if (moves.length > 0) {
-                players.B.pieces[0] =
-                  moves[Math.floor(Math.random() * moves.length)];
-              }
-            }
-            switchTurn();
+            if (!next) break;
+            current = next[0] === current ? next[1] : next[0];
+            if (players.A.pieces.includes(current)) count++;
+            else if (!players.B.pieces.includes(current)) {
+              empty = current;
+              break;
+            } else break;
           }
-          drawBoard();
-          checkWinConditions();
+          if (empty !== undefined && count % 2 === 1) {
+            if (!bestKill || count > bestKill.count) {
+              bestKill = { target: empty, count, dir };
+            }
+          }
+        }
+      });
+
+      if (bestKill) {
+        let current = tigerPos;
+        while (true) {
+          const next = lines.find(
+            ([s, e]) =>
+              (s === current &&
+                dots[e].x - dots[s].x === bestKill.dir.dx &&
+                dots[e].y - dots[s].y === bestKill.dir.dy) ||
+              (e === current &&
+                dots[s].x - dots[e].x === bestKill.dir.dx &&
+                dots[s].y - dots[e].y === bestKill.dir.dy)
+          );
+          if (!next) break;
+          current = next[0] === current ? next[1] : next[0];
+          if (players.A.pieces.includes(current)) {
+            players.A.pieces = players.A.pieces.filter((p) => p !== current);
+          } else break;
+        }
+        players.B.pieces[0] = bestKill.target;
+      } else {
+        const moves = lines
+          .flatMap(([s, e]) => (s === tigerPos ? e : e === tigerPos ? s : -1))
+          .filter(
+            (p) =>
+              p !== -1 &&
+              !players.A.pieces.includes(p) &&
+              !players.B.pieces.includes(p)
+          );
+        if (moves.length > 0) {
+          players.B.pieces[0] =
+            moves[Math.floor(Math.random() * moves.length)];
         }
       }
+      switchTurn();
+    }
+  }
+
+  drawBoard();
+  checkWinConditions();
+}
+
 
       function switchTurn() {
         currentPlayer = currentPlayer === "A" ? "B" : "A";
