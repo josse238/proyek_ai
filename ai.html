@@ -20,19 +20,29 @@
         width: 800px;
         height: 700px;
         border: 2px solid #000;
+        border-radius: 10px; /* Rounded corners */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Shadow effect */
+        overflow: hidden; /* Prevent overflow */
         transition: background-color 0.5s ease; /* Smooth transition */
       }
       canvas {
         position: absolute;
         top: 0;
         left: 0;
+        border-radius: 10px; /* Rounded corners for canvas */
+        background-color: #fff; /* White background for canvas */
       }
     </style>
   </head>
-  <body>
-    <div id="gameContainer">
-      <canvas id="boardCanvas" width="900" height="700"></canvas>
-    </div>
+ <body>
+  <div style="text-align: center; margin-bottom: 20px;">
+    <h1 style="color: #333;">Macanan Game</h1>
+    <p style="color: #666;">A strategic game of Uwong vs Tiger</p>
+  </div>
+  <div id="gameContainer">
+    <canvas id="boardCanvas" width="900" height="700"></canvas>
+  
+
 
     <script>
       const canvas = document.getElementById("boardCanvas");
@@ -722,5 +732,6 @@
       canvas.addEventListener("click", handleCanvasClick);
       initGame();
     </script>
+    </div>
   </body>
 </html>
