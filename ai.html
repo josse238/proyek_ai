@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Macanan Game</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      #gameContainer {
+        position: relative;
+        width: 800px;
+        height: 700px;
+        background-color: #fff;
+        border: 2px solid #000;
+      }
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gameContainer">
+      <canvas id="boardCanvas" width="900" height="700"></canvas>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("boardCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Game settings
+      let isHumanUwong = true;
+      let isGameActive = true;
+
+      // Board configuration
+      const dots = [
+        // Middle 5x5 grid
+        { x: 200, y: 100 },
+        { x: 300, y: 100 },
+        { x: 400, y: 100 },
+        { x: 500, y: 100 },
+        { x: 600, y: 100 },
+        { x: 200, y: 200 },
+        { x: 300, y: 200 },
+        { x: 400, y: 200 },
+        { x: 500, y: 200 },
+        { x: 600, y: 200 },
+        { x: 200, y: 300 },
+        { x: 300, y: 300 },
+        { x: 400, y: 300 },
+        { x: 500, y: 300 },
+        { x: 600, y: 300 },
+        { x: 200, y: 400 },
+        { x: 300, y: 400 },
+        { x: 400, y: 400 },
+        { x: 500, y: 400 },
+        { x: 600, y: 400 },
+        { x: 200, y: 500 },
+        { x: 300, y: 500 },
+        { x: 400, y: 500 },
+        { x: 500, y: 500 },
+        { x: 600, y: 500 },
+
+        // Triangles on left and right sides
+        { x: 0, y: 100 },
+        { x: 0, y: 300 },
+        { x: 0, y: 500 },
+        { x: 100, y: 200 },
+        { x: 100, y: 400 },
+        { x: 100, y: 300 },
+        { x: 800, y: 100 },
+        { x: 800, y: 300 },
+        { x: 800, y: 500 },
+        { x: 700, y: 200 },
+        { x: 700, y: 400 },
+        { x: 700, y: 300 },
+      ];
+
+      const lines = [
+        // Horizontal connections
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [5, 6],
+        [6, 7],
+        [7, 8],
+        [8, 9],
+        [10, 11],
+        [11, 12],
+        [12, 13],
+        [13, 14],
+        [15, 16],
+        [16, 17],
+        [17, 18],
+        [18, 19],
+        [20, 21],
+        [21, 22],
+        [22, 23],
+        [23, 24],
+
+        // Vertical connections
+        [0, 5],
+        [1, 6],
+        [2, 7],
+        [3, 8],
+        [4, 9],
+        [5, 10],
+        [6, 11],
+        [7, 12],
+        [8, 13],
+        [9, 14],
+        [10, 15],
+        [11, 16],
+        [12, 17],
+        [13, 18],
+        [14, 19],
+        [15, 20],
+        [16, 21],
+        [17, 22],
+        [18, 23],
+        [19, 24],
+
+        // Diagonal connections
+        [0, 6],
+        [6, 2],
+        [2, 8],
+        [8, 4],
+        [10, 6],
+        [6, 12],
+        [12, 8],
+        [8, 14],
+        [10, 16],
+        [16, 12],
+        [12, 18],
+        [18, 14],
+        [20, 16],
+        [16, 22],
+        [22, 18],
+        [18, 24],
+
+        // Triangle connections
+        [25, 26],
+        [26, 27],
+        [25, 28],
+        [26, 30],
+        [30, 10],
+        [27, 29],
+        [28, 30],
+        [29, 30],
+        [28, 10],
+        [29, 10],
+
+        [31, 32],
+        [32, 33],
+        [31, 34],
+        [32, 36],
+        [36, 14],
+        [33, 35],
+        [34, 36],
+        [35, 36],
+        [34, 14],
+        [35, 14],
+      ];
+
+      function getDotIndexAtPosition(x, y) {
+        for (let i = 0; i < dots.length; i++) {
+          const dot = dots[i];
+          const dx = dot.x - x;
+          const dy = dot.y - y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance <= 10) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      const players = {
+        A: {
+          color: "#FF0000",
+          pieces: [],
+          placedCount: 0,
+          maxPieces: 21,
+          mustPlace9: true,
+        },
+        B: {
+          color: "#0000FF",
+          pieces: [],
+          placedCount: 0,
+          maxPieces: 1,
+          mustPlace1: true, // Add placement phase for tiger
+        },
+      };
+
+      let currentPlayer = "A";
+      let selectedPiece = null;
+
+      // Initialize game
+      function initGame() {
+        isHumanUwong = confirm(
+          "Play as Uwong (Human)? OK for Yes, Cancel for Tiger."
+        );
+
+        // Reset placement flags
+        players.A.mustPlace9 = true;
+        players.B.mustPlace1 = true;
+        players.A.placedCount = 0;
+        players.B.placedCount = 0;
+        players.A.pieces = [];
+        players.B.pieces = [];
+
+        drawBoard();
+        if (!isHumanUwong) {
+          // Human plays Tiger (B), AI plays Uwong (A)
+          currentPlayer = "A";
+          performAIMove();
+        } else {
+          // Human plays Uwong (A), AI plays Tiger (B)
+          currentPlayer = "A"; // Human starts
+        }
+      }
+
+      // Drawing functions (same as original with win checks added)
+      function drawBoard() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "#C0C0C0";
+        ctx.lineWidth = 2;
+        lines.forEach(([start, end]) => {
+          const { x: x1, y: y1 } = dots[start];
+          const { x: x2, y: y2 } = dots[end];
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        });
+
+        dots.forEach((dot) => {
+          ctx.fillStyle = "#8BC34A";
+          ctx.beginPath();
+          ctx.arc(dot.x, dot.y, 7.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        Object.keys(players).forEach((player) => {
+          players[player].pieces.forEach((piece) => {
+            ctx.fillStyle = players[player].color;
+            ctx.beginPath();
+            ctx.arc(dots[piece].x, dots[piece].y, 10, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
+      }
+
+      function checkWinConditions() {
+        // Don't check win conditions until tiger is placed
+        if (players.B.pieces.length === 0) return false;
+
+        // Uwong wins if Tiger is surrounded
+        const tigerPos = players.B.pieces[0];
+        const canMove = lines.some(([start, end]) => {
+          const adjacent =
+            start === tigerPos ? end : end === tigerPos ? start : -1;
+          return (
+            adjacent !== -1 &&
+            !players.A.pieces.includes(adjacent) &&
+            !players.B.pieces.includes(adjacent)
+          );
+        });
+
+        if (!canMove) {
+          alert("Uwong wins! Tiger is surrounded.");
+          isGameActive = false;
+          return true;
+        }
+
+        // Tiger wins if Uwong's alive pieces (placed + remaining) < 14
+        const totalAlivePieces =
+          players.A.pieces.length + (21 - players.A.placedCount);
+        if (totalAlivePieces < 14) {
+          alert("Tiger wins! Uwong has less than 14 pieces.");
+          isGameActive = false;
+          return true;
+        }
+
+        return false;
+      }
+
+      function performAIMove() {
+        if (!isGameActive) return;
+
+        // Determine which side the AI should play based on isHumanUwong
+        if (
+          (currentPlayer === "A" && !isHumanUwong) || // AI plays Uwong when human is not Uwong
+          (currentPlayer === "B" && isHumanUwong) // AI plays Tiger when human is Uwong
+        ) {
+          if (currentPlayer === "A") {
+            // AI Uwong logic
+            if (players.A.mustPlace9) {
+              // Place initial 9 pieces
+              const validCenters = [6, 7, 8, 11, 12, 13, 16, 17, 18];
+              const center =
+                validCenters[Math.floor(Math.random() * validCenters.length)];
+              const offsets = [-6, -5, -4, -1, 0, 1, 4, 5, 6];
+              offsets.forEach((offset) => {
+                const target = center + offset;
+                if (!players.A.pieces.includes(target))
+                  players.A.pieces.push(target);
+              });
+              players.A.placedCount = 9;
+              players.A.mustPlace9 = false;
+              switchTurn();
+            } else if (players.A.placedCount < players.A.maxPieces) {
+              // Place remaining pieces
+              const empty = dots
+                .map((_, i) => i)
+                .find(
+                  (i) =>
+                    !players.A.pieces.includes(i) &&
+                    !players.B.pieces.includes(i)
+                );
+              if (empty !== undefined) {
+                players.A.pieces.push(empty);
+                players.A.placedCount++;
+              }
+              switchTurn();
+            } else {
+              // Move existing pieces
+              const moves = [];
+              players.A.pieces.forEach((p) => {
+                lines.forEach(([s, e]) => {
+                  if (
+                    s === p &&
+                    !players.A.pieces.includes(e) &&
+                    !players.B.pieces.includes(e)
+                  )
+                    moves.push({ from: p, to: e });
+                  if (
+                    e === p &&
+                    !players.A.pieces.includes(s) &&
+                    !players.B.pieces.includes(s)
+                  )
+                    moves.push({ from: p, to: s });
+                });
+              });
+              if (moves.length > 0) {
+                const move = moves[Math.floor(Math.random() * moves.length)];
+                players.A.pieces[players.A.pieces.indexOf(move.from)] = move.to;
+              }
+              switchTurn();
+            }
+          } else {
+            // AI Tiger logic (same as before)
+            const tigerPos = players.B.pieces[0];
+            // Try to find kill moves
+            let bestKill;
+            lines.forEach(([s, e]) => {
+              if (s === tigerPos || e === tigerPos) {
+                const dir =
+                  s === tigerPos
+                    ? { dx: dots[e].x - dots[s].x, dy: dots[e].y - dots[s].y }
+                    : { dx: dots[s].x - dots[e].x, dy: dots[s].y - dots[e].y };
+                let current = tigerPos;
+                let count = 0;
+                let empty;
+                while (true) {
+                  const next = lines.find(([s1, e1]) => {
+                    if (
+                      s1 === current &&
+                      dots[e1].x - dots[s1].x === dir.dx &&
+                      dots[e1].y - dots[s1].y === dir.dy
+                    )
+                      return true;
+                    if (
+                      e1 === current &&
+                      dots[s1].x - dots[e1].x === dir.dx &&
+                      dots[s1].y - dots[e1].y === dir.dy
+                    )
+                      return true;
+                    return false;
+                  });
+                  if (!next) break;
+                  current = next[0] === current ? next[1] : next[0];
+                  if (players.A.pieces.includes(current)) count++;
+                  else if (!players.B.pieces.includes(current)) {
+                    empty = current;
+                    break;
+                  } else break;
+                }
+                if (empty !== undefined && count % 2 === 1) {
+                  if (!bestKill || count > bestKill.count) {
+                    bestKill = { target: empty, count, dir };
+                  }
+                }
+              }
+            });
+
+            if (bestKill) {
+              // Perform kill
+              let current = tigerPos;
+              while (true) {
+                const next = lines.find(
+                  ([s, e]) =>
+                    (s === current &&
+                      dots[e].x - dots[s].x === bestKill.dir.dx &&
+                      dots[e].y - dots[s].y === bestKill.dir.dy) ||
+                    (e === current &&
+                      dots[s].x - dots[e].x === bestKill.dir.dx &&
+                      dots[s].y - dots[e].y === bestKill.dir.dy)
+                );
+                if (!next) break;
+                current = next[0] === current ? next[1] : next[0];
+                if (players.A.pieces.includes(current)) {
+                  players.A.pieces = players.A.pieces.filter(
+                    (p) => p !== current
+                  );
+                } else break;
+              }
+              players.B.pieces[0] = bestKill.target;
+            } else {
+              // Regular move
+              const moves = lines
+                .flatMap(([s, e]) =>
+                  s === tigerPos ? e : e === tigerPos ? s : -1
+                )
+                .filter(
+                  (p) =>
+                    p !== -1 &&
+                    !players.A.pieces.includes(p) &&
+                    !players.B.pieces.includes(p)
+                );
+              if (moves.length > 0) {
+                players.B.pieces[0] =
+                  moves[Math.floor(Math.random() * moves.length)];
+              }
+            }
+            switchTurn();
+          }
+          drawBoard();
+          checkWinConditions();
+        }
+      }
+
+      function switchTurn() {
+        currentPlayer = currentPlayer === "A" ? "B" : "A";
+
+        // Handle AI moves
+        if (
+          (currentPlayer === "A" && !isHumanUwong) || // AI plays Uwong
+          (currentPlayer === "B" && isHumanUwong) // AI plays Tiger
+        ) {
+          setTimeout(() => {
+            // Only perform AI moves if it's the AI's turn
+            performAIMove();
+          }, 500);
+        }
+      }
+
+      // Event handling and game logic
+      function handleCanvasClick(e) {
+        if (!isGameActive) return;
+        if (
+          (currentPlayer === "A" && !isHumanUwong) ||
+          (currentPlayer === "B" && isHumanUwong)
+        )
+          return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const clickedDot = getDotIndexAtPosition(x, y);
+        if (clickedDot === -1) return;
+
+        const player = players[currentPlayer];
+        const opponent = currentPlayer === "A" ? players.B : players.A;
+
+        // Handle Uwong (Player A)
+        if (currentPlayer === "A") {
+          if (player.mustPlace9) {
+            const validCenters = [6, 7, 8, 11, 12, 13, 16, 17, 18];
+            if (!validCenters.includes(clickedDot)) {
+              alert("Invalid selection: Choose the center of a 3x3 formation.");
+              return;
+            }
+
+            // Place initial 9 pieces
+            const offsets = [-6, -5, -4, -1, 0, 1, 4, 5, 6];
+            offsets.forEach((offset) => {
+              const targetDot = clickedDot + offset;
+              if (!players.A.pieces.includes(targetDot)) {
+                players.A.pieces.push(targetDot);
+              }
+            });
+            player.placedCount = 9;
+            player.mustPlace9 = false;
+
+            // Switch to Tiger placement phase
+            switchTurn();
+          } else if (player.placedCount < player.maxPieces) {
+            // Placing remaining pieces
+            if (
+              players.A.pieces.includes(clickedDot) ||
+              players.B.pieces.includes(clickedDot)
+            ) {
+              alert("Invalid move: Spot already occupied!");
+              return;
+            }
+            player.pieces.push(clickedDot);
+            player.placedCount++;
+            switchTurn();
+          } else {
+            // Moving phase
+            if (!selectedPiece) {
+              // Select piece to move
+              if (!player.pieces.includes(clickedDot)) return;
+              selectedPiece = clickedDot;
+            } else {
+              // Move selected piece
+              const isValidMove = lines.some(
+                ([start, end]) =>
+                  (start === selectedPiece && end === clickedDot) ||
+                  (end === selectedPiece && start === clickedDot)
+              );
+
+              if (!isValidMove) {
+                alert("Invalid move: Must move along a connected line!");
+                return;
+              }
+
+              if (
+                !players.A.pieces.includes(clickedDot) &&
+                !players.B.pieces.includes(clickedDot)
+              ) {
+                const pieceIndex = player.pieces.indexOf(selectedPiece);
+                player.pieces[pieceIndex] = clickedDot;
+                selectedPiece = null;
+                switchTurn();
+              } else {
+                alert("Invalid move: Spot already occupied!");
+              }
+            }
+          }
+        }
+        // Handle Tiger (Player B)
+        else {
+          if (players.B.mustPlace1) {
+            // Tiger placement phase
+            if (
+              !players.A.pieces.includes(clickedDot) &&
+              !players.B.pieces.includes(clickedDot)
+            ) {
+              players.B.pieces[0] = clickedDot;
+              players.B.mustPlace1 = false;
+              players.B.placedCount = 1;
+              switchTurn();
+            }
+          } else {
+            // Moving phase
+            if (!selectedPiece) {
+              // Select tiger to move
+              if (!player.pieces.includes(clickedDot)) return;
+              selectedPiece = clickedDot;
+            } else {
+              // Move tiger
+              const currentLine = lines.find(
+                ([start, end]) =>
+                  (start === selectedPiece && end === clickedDot) ||
+                  (end === selectedPiece && start === clickedDot)
+              );
+
+              if (!currentLine) {
+                alert("Invalid move: Must move along a connected line!");
+                return;
+              }
+
+              // Check for kill move
+              if (opponent.pieces.includes(clickedDot)) {
+                const moveDirection = {
+                  dx: dots[clickedDot].x - dots[selectedPiece].x,
+                  dy: dots[clickedDot].y - dots[selectedPiece].y,
+                };
+
+                let nextDot = selectedPiece;
+                let aPiecesCount = 0;
+                let emptySpot = null;
+
+                // Check valid kill path
+                while (true) {
+                  const nextLine = lines.find(
+                    ([start, end]) =>
+                      (start === nextDot &&
+                        dots[end].x - dots[nextDot].x === moveDirection.dx &&
+                        dots[end].y - dots[nextDot].y === moveDirection.dy) ||
+                      (end === nextDot &&
+                        dots[start].x - dots[nextDot].x === moveDirection.dx &&
+                        dots[start].y - dots[nextDot].y === moveDirection.dy)
+                  );
+
+                  if (!nextLine) break;
+                  const [start, end] = nextLine;
+                  nextDot = start === nextDot ? end : start;
+
+                  if (players.A.pieces.includes(nextDot)) {
+                    aPiecesCount++;
+                  } else if (!players.B.pieces.includes(nextDot)) {
+                    emptySpot = nextDot;
+                    break;
+                  } else {
+                    break;
+                  }
+                }
+
+                if (!emptySpot || aPiecesCount % 2 === 0) {
+                  alert("Invalid kill move!");
+                  return;
+                }
+
+                // Remove jumped pieces
+                let current = selectedPiece;
+                while (current !== emptySpot) {
+                  const nextLine = lines.find(
+                    ([start, end]) =>
+                      (start === current &&
+                        dots[end].x - dots[start].x === moveDirection.dx &&
+                        dots[end].y - dots[start].y === moveDirection.dy) ||
+                      (end === current &&
+                        dots[start].x - dots[end].x === moveDirection.dx &&
+                        dots[start].y - dots[end].y === moveDirection.dy)
+                  );
+
+                  if (!nextLine) break;
+                  const [start, end] = nextLine;
+                  current = start === current ? end : start;
+
+                  if (players.A.pieces.includes(current)) {
+                    players.A.pieces = players.A.pieces.filter(
+                      (p) => p !== current
+                    );
+                  }
+                }
+
+                player.pieces[0] = emptySpot;
+              } else {
+                // Regular move
+                if (
+                  !players.A.pieces.includes(clickedDot) &&
+                  !players.B.pieces.includes(clickedDot)
+                ) {
+                  player.pieces[0] = clickedDot;
+                } else {
+                  alert("Invalid move: Spot already occupied!");
+                }
+              }
+              selectedPiece = null;
+              switchTurn();
+            }
+          }
+        }
+
+        drawBoard();
+        if (!checkWinConditions()) {
+          // Only switch turn after completing a move, not when selecting
+          if (
+            (currentPlayer === "A" &&
+              !player.mustPlace9 &&
+              player.placedCount === 21 &&
+              selectedPiece === null) ||
+            (currentPlayer === "B" &&
+              !player.mustPlace1 &&
+              selectedPiece === null)
+          ) {
+            switchTurn();
+          }
+        } else {
+          isGameActive = false;
+        }
+      }
+
+      canvas.addEventListener("click", handleCanvasClick);
+      initGame();
+    </script>
+  </body>
+</html>
