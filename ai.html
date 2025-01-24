@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Macanan Game</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="sweetalert2.min.css">
     <style>
        html, body {
     width: 100%;
@@ -712,38 +716,68 @@
       }
 
       function checkWinConditions() {
-        // Don't check win conditions until tiger is placed
-        if (players.B.pieces.length === 0) return false;
+  // Don't check win conditions until tiger is placed
+  if (players.B.pieces.length === 0) return false;
 
-        // Uwong wins if Tiger is surrounded
-        const tigerPos = players.B.pieces[0];
-        const canMove = lines.some(([start, end]) => {
-          const adjacent =
-            start === tigerPos ? end : end === tigerPos ? start : -1;
-          return (
-            adjacent !== -1 &&
-            !players.A.pieces.includes(adjacent) &&
-            !players.B.pieces.includes(adjacent)
-          );
-        });
+  // Uwong wins if Tiger is surrounded
+  const tigerPos = players.B.pieces[0];
+  const canMove = lines.some(([start, end]) => {
+    const adjacent =
+      start === tigerPos ? end : end === tigerPos ? start : -1;
+    return (
+      adjacent !== -1 &&
+      !players.A.pieces.includes(adjacent) &&
+      !players.B.pieces.includes(adjacent)
+    );
+  });
 
-        if (!canMove) {
-          alert("Uwong wins! Tiger is surrounded.");
-          isGameActive = false;
-          return true;
-        }
+  if (!canMove) {
+    Swal.fire({
+      title: "Congratulations!",
+      text: "Uwong wins! Tiger is surrounded.",
+      icon: "success",
+      confirmButtonText: "OK",
+      width: 600,
+      padding: "3em",
+      color: "#716add",
+      background: "#fff url(/images/trees.png)",
+      backdrop: `
+        rgba(0,0,123,0.4)
+        url("/images/nyan-cat.gif")
+        left top
+        no-repeat
+      `
+    });
+    isGameActive = false;
+    return true;
+  }
 
-        // Tiger wins if Uwong's alive pieces (placed + remaining) < 14
-        const totalAlivePieces =
-          players.A.pieces.length + (21 - players.A.placedCount);
-        if (totalAlivePieces < 14) {
-          alert("Tiger wins! Uwong has less than 14 pieces.");
-          isGameActive = false;
-          return true;
-        }
+  // Tiger wins if Uwong's alive pieces (placed + remaining) < 14
+  const totalAlivePieces =
+    players.A.pieces.length + (21 - players.A.placedCount);
+  if (totalAlivePieces < 14) {
+    Swal.fire({
+      title: "Game Over",
+      text: "Tiger wins! Uwong has less than 14 pieces.",
+      icon: "success",
+      confirmButtonText: "OK",
+      width: 600,
+      padding: "3em",
+      color: "#716add",
+      background: "#fff url(/images/trees.png)",
+      backdrop: `
+        rgba(0,0,123,0.4)
+        url("/images/nyan-cat.gif")
+        left top
+        no-repeat
+      `
+    });
+    isGameActive = false;
+    return true;
+  }
 
-        return false;
-      }
+  return false;
+}
 
       function performAIMove() {
   if (!isGameActive) return;
@@ -940,7 +974,22 @@
           if (player.mustPlace9) {
             const validCenters = [6, 7, 8, 11, 12, 13, 16, 17, 18];
             if (!validCenters.includes(clickedDot)) {
-              alert("Invalid selection: Choose the center of a 3x3 formation.");
+              Swal.fire({
+                title: "Invalid Selection",
+                text: "Choose the center of a 3x3 formation.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                width: 600,
+                padding: "3em",
+                color: "#716add",
+                background: "#fff url(/images/trees.png)",
+                backdrop: `
+                  rgba(0,0,123,0.4)
+                  url("/images/nyan-cat.gif")
+                  left top
+                  no-repeat
+                `
+              });
               return;
             }
 
@@ -963,7 +1012,22 @@
               players.A.pieces.includes(clickedDot) ||
               players.B.pieces.includes(clickedDot)
             ) {
-              alert("Invalid move: Spot already occupied!");
+              Swal.fire({
+                title: "Invalid Move",
+                text: "Spot already occupied!",
+                icon: "error",
+                confirmButtonText: "OK",
+                width: 600,
+                padding: "3em",
+                color: "#716add",
+                background: "#fff url(/images/trees.png)",
+                backdrop: `
+                  rgba(0,0,123,0.4)
+                  url("/images/nyan-cat.gif")
+                  left top
+                  no-repeat
+                `
+              });
               return;
             }
             player.pieces.push(clickedDot);
@@ -1141,5 +1205,6 @@
       initGame();
     </script>
     </div>
+    <script src="sweetalert2.all.min.js"></script>
   </body>
 </html>
