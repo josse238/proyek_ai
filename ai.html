@@ -9,18 +9,18 @@
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f4f4f4;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
+        background-color: #f4f4f4;
       }
       #gameContainer {
         position: relative;
         width: 800px;
         height: 700px;
-        background-color: #fff;
         border: 2px solid #000;
+        transition: background-color 0.5s ease; /* Smooth transition */
       }
       canvas {
         position: absolute;
@@ -36,7 +36,37 @@
 
     <script>
       const canvas = document.getElementById("boardCanvas");
-      const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d");
+  const gameContainer = document.getElementById("gameContainer");
+
+  let virtualTime = 300; // Mulai dari jam 5:00 (300 menit sejak 00:00)
+
+  // Update background color based on virtual time
+  function updateBackground() {
+    const localHour = Math.floor(virtualTime / 60); // Hitung jam
+    const localMinute = virtualTime % 60; // Hitung menit
+
+    // Ubah warna berdasarkan waktu pagi (06:00-18:00) atau malam
+    if (localHour >= 6 && localHour < 18) {
+      gameContainer.style.backgroundColor = "#e0f7fa"; // Light blue
+    } else {
+      gameContainer.style.backgroundColor = "#263238"; // Dark grayish-blue
+    }
+
+    console.log(`Current virtual time: ${localHour}:${localMinute < 10 ? "0" : ""}${localMinute}`);
+  }
+
+  // Simulasikan perubahan waktu setiap detik
+  function startClock() {
+    setInterval(() => {
+      virtualTime = (virtualTime + 48) % 1440; // Tambahkan 48 menit per detik
+      updateBackground();
+    }, 1000); // 1 detik = 48 menit virtual
+  }
+
+  // Inisialisasi
+  updateBackground();
+  startClock();
 
       // Game settings
       let isHumanUwong = true;
